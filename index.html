@@ -208,6 +208,8 @@
         }
         .table-ctrl-btn:hover { background: var(--plasma-accent); color: white; }
         .table-ctrl-btn.danger:hover { background: #e74c3c; }
+        .table-ctrl-btn.success { color: #86efac; }
+        .table-ctrl-btn.success:hover { background: #22c55e; color: white; }
 
         #toast-container {
             position: fixed;
@@ -282,8 +284,6 @@
                     <div class="flex gap-2">
                         <input type="file" id="csvImport" accept=".csv">
                         <label for="csvImport" class="text-xs bg-white/10 hover:bg-white/20 text-white py-1.5 px-3 rounded cursor-pointer border border-white/10 transition-colors">Import CSV</label>
-                        <button id="addColBtn" class="text-xs bg-white/10 hover:bg-white/20 text-white py-1.5 px-3 rounded border border-white/10 transition-colors">+ Col</button>
-                        <button id="addRowBtn" class="text-xs bg-white/10 hover:bg-white/20 text-white py-1.5 px-3 rounded border border-white/10 transition-colors">+ Row</button>
                     </div>
                     <input type="text" id="tableSearch" placeholder="Search..." class="text-xs plasma-input py-1.5 px-3 rounded w-32 focus:w-48 transition-all">
                 </div>
@@ -595,10 +595,11 @@
                 for (let j = 0; j < numCols; j++) {
                     const th = document.createElement('th');
                     th.innerHTML = `
-                        <div class="flex gap-1 justify-center">
-                            <button class="table-ctrl-btn" onclick="moveCol(${j}, -1)" ${j===0?'disabled':''}>&lt;</button>
-                            <button class="table-ctrl-btn danger" onclick="delCol(${j})">X</button>
-                            <button class="table-ctrl-btn" onclick="moveCol(${j}, 1)" ${j===numCols-1?'disabled':''}>&gt;</button>
+                        <div class="flex gap-1 justify-center items-center">
+                            <button class="table-ctrl-btn" title="Move Left" onclick="moveCol(${j}, -1)" ${j===0?'disabled':''}>&lt;</button>
+                            <button class="table-ctrl-btn danger" title="Delete Column" onclick="delCol(${j})">X</button>
+                            <button class="table-ctrl-btn" title="Move Right" onclick="moveCol(${j}, 1)" ${j===numCols-1?'disabled':''}>&gt;</button>
+                            <button class="table-ctrl-btn success" title="Insert Right" onclick="insertCol(${j})">+</button>
                         </div>
                     `;
                     trHead.appendChild(th);
@@ -618,10 +619,11 @@
                 if (mode === 'edit') {
                     const tdCtrl = document.createElement('td');
                     tdCtrl.innerHTML = `
-                        <div class="flex gap-1 justify-center flex-col sm:flex-row">
-                            <button class="table-ctrl-btn" onclick="moveRow(${i}, -1)" ${i===0?'disabled':''}>&uarr;</button>
-                            <button class="table-ctrl-btn danger" onclick="delRow(${i})">X</button>
-                            <button class="table-ctrl-btn" onclick="moveRow(${i}, 1)" ${i===data.length-1?'disabled':''}>&darr;</button>
+                        <div class="flex gap-1 justify-center flex-col sm:flex-row items-center">
+                            <button class="table-ctrl-btn" title="Move Up" onclick="moveRow(${i}, -1)" ${i===0?'disabled':''}>&uarr;</button>
+                            <button class="table-ctrl-btn danger" title="Delete Row" onclick="delRow(${i})">X</button>
+                            <button class="table-ctrl-btn" title="Move Down" onclick="moveRow(${i}, 1)" ${i===data.length-1?'disabled':''}>&darr;</button>
+                            <button class="table-ctrl-btn success" title="Insert Below" onclick="insertRow(${i})">+</button>
                         </div>
                     `;
                     tr.appendChild(tdCtrl);
@@ -647,8 +649,8 @@
         }
 
         // Global functions for inline HTML event handlers
-        window.addCol = () => { tableData.forEach(r => r.push("")); renderTable(tableData, 'tableContainer', 'edit'); };
-        window.addRow = () => { tableData.push(new Array(tableData[0].length).fill("")); renderTable(tableData, 'tableContainer', 'edit'); };
+        window.insertCol = (j) => { tableData.forEach(r => r.splice(j + 1, 0, "")); renderTable(tableData, 'tableContainer', 'edit'); };
+        window.insertRow = (i) => { tableData.splice(i + 1, 0, new Array(tableData[0].length).fill("")); renderTable(tableData, 'tableContainer', 'edit'); };
         window.delCol = (j) => { if(tableData[0].length > 1) { tableData.forEach(r => r.splice(j, 1)); renderTable(tableData, 'tableContainer', 'edit'); } };
         window.delRow = (i) => { if(tableData.length > 1) { tableData.splice(i, 1); renderTable(tableData, 'tableContainer', 'edit'); } };
         window.moveCol = (j, dir) => {
@@ -663,9 +665,6 @@
                 renderTable(tableData, 'tableContainer', 'edit');
             }
         };
-
-        document.getElementById('addColBtn').addEventListener('click', window.addCol);
-        document.getElementById('addRowBtn').addEventListener('click', window.addRow);
 
         // --- Core Cryptography Engine ---
         async function getBaseKey(password) {
@@ -971,10 +970,11 @@
                             for (let j = 0; j < numCols; j++) {
                                 const th = document.createElement('th');
                                 th.innerHTML = `
-                                    <div class="flex gap-1 justify-center">
-                                        <button class="table-ctrl-btn" onclick="moveDecCol(${j}, -1)" ${j===0?'disabled':''}>&lt;</button>
-                                        <button class="table-ctrl-btn danger" onclick="delDecCol(${j})">X</button>
-                                        <button class="table-ctrl-btn" onclick="moveDecCol(${j}, 1)" ${j===numCols-1?'disabled':''}>&gt;</button>
+                                    <div class="flex gap-1 justify-center items-center">
+                                        <button class="table-ctrl-btn" title="Move Left" onclick="moveDecCol(${j}, -1)" ${j===0?'disabled':''}>&lt;</button>
+                                        <button class="table-ctrl-btn danger" title="Delete Column" onclick="delDecCol(${j})">X</button>
+                                        <button class="table-ctrl-btn" title="Move Right" onclick="moveDecCol(${j}, 1)" ${j===numCols-1?'disabled':''}>&gt;</button>
+                                        <button class="table-ctrl-btn success" title="Insert Right" onclick="insertDecCol(${j})">+</button>
                                     </div>
                                 `;
                                 trHead.appendChild(th);
@@ -987,10 +987,11 @@
                             if (mode === 'edit') {
                                 const tdCtrl = document.createElement('td');
                                 tdCtrl.innerHTML = `
-                                    <div class="flex gap-1 justify-center flex-col sm:flex-row">
-                                        <button class="table-ctrl-btn" onclick="moveDecRow(${i}, -1)" ${i===0?'disabled':''}>&uarr;</button>
-                                        <button class="table-ctrl-btn danger" onclick="delDecRow(${i})">X</button>
-                                        <button class="table-ctrl-btn" onclick="moveDecRow(${i}, 1)" ${i===data.length-1?'disabled':''}>&darr;</button>
+                                    <div class="flex gap-1 justify-center flex-col sm:flex-row items-center">
+                                        <button class="table-ctrl-btn" title="Move Up" onclick="moveDecRow(${i}, -1)" ${i===0?'disabled':''}>&uarr;</button>
+                                        <button class="table-ctrl-btn danger" title="Delete Row" onclick="delDecRow(${i})">X</button>
+                                        <button class="table-ctrl-btn" title="Move Down" onclick="moveDecRow(${i}, 1)" ${i===data.length-1?'disabled':''}>&darr;</button>
+                                        <button class="table-ctrl-btn success" title="Insert Below" onclick="insertDecRow(${i})">+</button>
                                     </div>
                                 `;
                                 tr.appendChild(tdCtrl);
@@ -1011,6 +1012,8 @@
                         container.appendChild(table);
                     };
 
+                    window.insertDecCol = (j) => { decodedTableData.forEach(r => r.splice(j + 1, 0, "")); renderDecTable(decodedTableData, 'edit'); };
+                    window.insertDecRow = (i) => { decodedTableData.splice(i + 1, 0, new Array(decodedTableData[0].length).fill("")); renderDecTable(decodedTableData, 'edit'); };
                     window.delDecCol = (j) => { if(decodedTableData[0].length > 1) { decodedTableData.forEach(r => r.splice(j, 1)); renderDecTable(decodedTableData, 'edit'); } };
                     window.delDecRow = (i) => { if(decodedTableData.length > 1) { decodedTableData.splice(i, 1); renderDecTable(decodedTableData, 'edit'); } };
                     window.moveDecCol = (j, dir) => {
