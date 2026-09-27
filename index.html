@@ -18,6 +18,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 1rem;
         }
 
         :root {
@@ -75,17 +76,25 @@
             border: 1px solid var(--breeze-border);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 
                         inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
         }
 
         .plasma-input {
             background: rgba(20, 24, 28, 0.8);
             border: 1px solid rgba(255, 255, 255, 0.1);
             transition: all 0.2s ease;
+            color: white;
         }
         .plasma-input:focus {
             outline: none;
             border-color: var(--plasma-accent);
             box-shadow: 0 0 0 2px rgba(61, 174, 233, 0.2);
+        }
+        .plasma-input[readonly] {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: transparent;
+            cursor: not-allowed;
+            color: #94a3b8;
         }
 
         input[type="file"] { display: none; }
@@ -122,6 +131,84 @@
         }
         .radio-custom:checked + div span { color: white; }
 
+        /* Filename Input with Locked Extension */
+        .filename-wrapper {
+            display: flex;
+            align-items: stretch;
+            background: rgba(20, 24, 28, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        .filename-wrapper:focus-within {
+            border-color: var(--plasma-accent);
+            box-shadow: 0 0 0 2px rgba(61, 174, 233, 0.2);
+        }
+        .filename-input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            padding: 0.75rem 1rem;
+            color: white;
+            font-size: 0.875rem;
+            outline: none;
+        }
+        .filename-ext {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.75rem 1rem;
+            color: #94a3b8;
+            font-size: 0.875rem;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            user-select: none;
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        .secret-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        .secret-table th, .secret-table td {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.5rem;
+            min-width: 120px;
+        }
+        .secret-table th { background: rgba(255, 255, 255, 0.05); font-weight: 600; text-align: center;}
+        .cell-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: white;
+            outline: none;
+            padding: 0.25rem;
+            font-size: 0.875rem;
+        }
+        .cell-input:focus { background: rgba(61, 174, 233, 0.1); }
+        .cell-input[readonly] { color: #cbd5e1; }
+        
+        .table-ctrl-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0.25rem;
+            padding: 0.2rem 0.4rem;
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .table-ctrl-btn:hover { background: var(--plasma-accent); color: white; }
+        .table-ctrl-btn.danger:hover { background: #e74c3c; }
+
         #toast-container {
             position: fixed;
             top: 20px;
@@ -153,14 +240,14 @@
         #processingCanvas { display: none; }
     </style>
 </head>
-<body class="p-4 sm:p-6">
+<body>
 
     <div id="sky"></div>
     <div class="moon"></div>
     <canvas id="processingCanvas"></canvas>
     <div id="toast-container"></div>
 
-    <div class="w-full max-w-md plasma-card rounded-2xl p-6 sm:p-8 relative z-10 w-full">
+    <div id="mainCard" class="w-full max-w-md plasma-card rounded-2xl p-6 sm:p-8 relative z-10 transition-all duration-300">
         
         <div class="text-center mb-6">
             <h1 class="text-2xl sm:text-3xl font-bold tracking-wider text-white">LSN-ENCODER</h1>
@@ -171,13 +258,44 @@
             <button id="tabDecode" class="tab-btn uppercase tracking-wider text-sm font-semibold pb-1">Decode</button>
         </div>
 
+        <!-- ENCODE VIEW -->
         <div id="viewEncode" class="flex flex-col gap-5">
-            <div>
+            
+            <!-- Type Toggle (File vs Table) -->
+            <div class="flex justify-center bg-black/20 p-1 rounded-lg border border-white/10">
+                <button id="modeFileBtn" class="flex-1 py-1.5 text-sm font-medium rounded text-white bg-white/10 shadow shadow-black/20 transition-all">File</button>
+                <button id="modeTableBtn" class="flex-1 py-1.5 text-sm font-medium rounded text-gray-400 hover:text-white transition-all">Table Tool</button>
+            </div>
+
+            <!-- File Input Area -->
+            <div id="encFileArea">
                 <input type="file" id="encSecretFile">
                 <label for="encSecretFile" id="encSecretZone" class="file-drop-area flex flex-col items-center justify-center w-full h-24 rounded-lg cursor-pointer">
                     <svg class="w-6 h-6 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     <span id="encSecretName" class="text-gray-400 text-xs px-4 text-center truncate w-full">Select file to encrypt</span>
                 </label>
+            </div>
+
+            <!-- Table Editor Area (Hidden by default) -->
+            <div id="encTableArea" class="hidden flex-col gap-3">
+                <div class="flex flex-wrap gap-2 justify-between items-center">
+                    <div class="flex gap-2">
+                        <input type="file" id="csvImport" accept=".csv">
+                        <label for="csvImport" class="text-xs bg-white/10 hover:bg-white/20 text-white py-1.5 px-3 rounded cursor-pointer border border-white/10 transition-colors">Import CSV</label>
+                        <button id="addColBtn" class="text-xs bg-white/10 hover:bg-white/20 text-white py-1.5 px-3 rounded border border-white/10 transition-colors">+ Col</button>
+                        <button id="addRowBtn" class="text-xs bg-white/10 hover:bg-white/20 text-white py-1.5 px-3 rounded border border-white/10 transition-colors">+ Row</button>
+                    </div>
+                    <input type="text" id="tableSearch" placeholder="Search..." class="text-xs plasma-input py-1.5 px-3 rounded w-32 focus:w-48 transition-all">
+                </div>
+                <div class="table-container" id="tableContainer">
+                    <!-- Table rendered here -->
+                </div>
+            </div>
+
+            <!-- Output Filename -->
+            <div class="filename-wrapper">
+                <input type="text" id="outFilename" placeholder="Output filename (optional)" class="filename-input">
+                <span id="outExt" class="filename-ext">.lsn</span>
             </div>
 
             <!-- Output Mode Selection -->
@@ -208,22 +326,47 @@
             <button id="btnEncode" class="btn-action w-full py-3 rounded-lg text-white font-bold uppercase tracking-wider text-sm">Encode</button>
         </div>
 
+        <!-- DECODE VIEW -->
         <div id="viewDecode" class="hidden flex-col gap-5">
-            <div>
-                <input type="file" id="decFile" accept=".lsn, image/png">
-                <label for="decFile" id="decFileZone" class="file-drop-area flex flex-col items-center justify-center w-full h-24 rounded-lg cursor-pointer">
-                    <svg class="w-6 h-6 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path></svg>
-                    <span id="decFileName" class="text-gray-400 text-xs px-4 text-center truncate w-full">Select .lsn or stego image</span>
-                </label>
+            <div id="decInputArea" class="flex flex-col gap-5">
+                <div>
+                    <input type="file" id="decFile" accept=".lsn, image/png">
+                    <label for="decFile" id="decFileZone" class="file-drop-area flex flex-col items-center justify-center w-full h-24 rounded-lg cursor-pointer">
+                        <svg class="w-6 h-6 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path></svg>
+                        <span id="decFileName" class="text-gray-400 text-xs px-4 text-center truncate w-full">Select .lsn or stego image</span>
+                    </label>
+                </div>
+                <input type="password" id="decPassword" placeholder="Password" class="w-full px-4 py-3 rounded-lg plasma-input text-white text-sm">
+                <button id="btnDecode" class="btn-action btn-decode w-full py-3 rounded-lg text-white font-bold uppercase tracking-wider text-sm">Decode</button>
             </div>
 
-            <input type="password" id="decPassword" placeholder="Password" class="w-full px-4 py-3 rounded-lg plasma-input text-white text-sm">
-            <button id="btnDecode" class="btn-action btn-decode w-full py-3 rounded-lg text-white font-bold uppercase tracking-wider text-sm">Decode</button>
+            <!-- Decoded Table View (Hidden until a table is decoded) -->
+            <div id="decTableArea" class="hidden flex-col gap-4">
+                <div class="flex justify-between items-center bg-blue-900/30 p-3 rounded-lg border border-blue-500/30">
+                    <div>
+                        <span class="text-xs text-blue-300 font-bold uppercase block">Secured Data Loaded</span>
+                        <span id="decTableFilename" class="text-sm text-white truncate max-w-[200px] block">filename.lsn</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="btnToggleEdit" class="text-xs bg-white/10 hover:bg-white/20 text-white py-1.5 px-3 rounded border border-white/10 transition-colors">Enable Edit</button>
+                        <button id="btnCloseDecTable" class="text-xs bg-red-500/20 hover:bg-red-500/40 text-red-200 py-1.5 px-3 rounded border border-red-500/30 transition-colors">Close</button>
+                    </div>
+                </div>
+                
+                <!-- Re-use the table renderer here -->
+                <div class="table-container" id="decTableContainer"></div>
+
+                <div id="decTableReEncodeArea" class="hidden flex-col gap-3 mt-2 border-t border-white/10 pt-4">
+                    <span class="text-xs text-gray-400 uppercase font-semibold">Re-Encrypt Changes</span>
+                    <input type="password" id="reEncPassword" placeholder="New or Same Password" class="w-full px-3 py-2 rounded-lg plasma-input text-sm">
+                    <button id="btnReEncode" class="btn-action w-full py-2 rounded-lg text-white font-bold uppercase tracking-wider text-sm">Save & Encode</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // Background Stars Generation
+        // --- UI & Environment Setup ---
         const sky = document.getElementById('sky');
         for (let i = 0; i < 150; i++) {
             const star = document.createElement('div');
@@ -238,25 +381,21 @@
             sky.appendChild(star);
         }
 
-        // Custom Toast System (replaces alert)
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast toast-${type}`;
             toast.textContent = message;
             container.appendChild(toast);
-            
-            // Trigger reflow to start animation
             void toast.offsetWidth; 
             toast.classList.add('show');
-
             setTimeout(() => {
                 toast.classList.remove('show');
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         }
 
-        // UI Tab Management
+        const mainCard = document.getElementById('mainCard');
         const tabs = {
             enc: document.getElementById('tabEncode'),
             dec: document.getElementById('tabDecode'),
@@ -264,33 +403,93 @@
             viewDec: document.getElementById('viewDecode')
         };
 
+        function resetDecodeView() {
+            document.getElementById('decInputArea').classList.remove('hidden');
+            document.getElementById('decInputArea').classList.add('flex');
+            document.getElementById('decTableArea').classList.add('hidden');
+            document.getElementById('decTableArea').classList.remove('flex');
+            document.getElementById('decPassword').value = '';
+            mainCard.classList.remove('max-w-4xl');
+            mainCard.classList.add('max-w-md');
+        }
+
         tabs.enc.addEventListener('click', () => {
             tabs.enc.classList.add('active'); tabs.dec.classList.remove('active');
             tabs.viewEnc.classList.remove('hidden'); tabs.viewEnc.classList.add('flex');
             tabs.viewDec.classList.add('hidden'); tabs.viewDec.classList.remove('flex');
+            updateCardWidth(encodeMode === 'table');
         });
         tabs.dec.addEventListener('click', () => {
             tabs.dec.classList.add('active'); tabs.enc.classList.remove('active');
             tabs.viewDec.classList.remove('hidden'); tabs.viewDec.classList.add('flex');
             tabs.viewEnc.classList.add('hidden'); tabs.viewEnc.classList.remove('flex');
+            updateCardWidth(document.getElementById('decTableArea').classList.contains('flex'));
         });
 
-        // Toggle Carrier Image input based on Radio choice
+        function updateCardWidth(isWide) {
+            if (isWide) {
+                mainCard.classList.remove('max-w-md');
+                mainCard.classList.add('max-w-4xl');
+            } else {
+                mainCard.classList.remove('max-w-4xl');
+                mainCard.classList.add('max-w-md');
+            }
+        }
+
+        // --- Encode Mode Toggle (File / Table) ---
+        let encodeMode = 'file'; // 'file' or 'table'
+        const modeFileBtn = document.getElementById('modeFileBtn');
+        const modeTableBtn = document.getElementById('modeTableBtn');
+        const encFileArea = document.getElementById('encFileArea');
+        const encTableArea = document.getElementById('encTableArea');
+        const outFilename = document.getElementById('outFilename');
+
+        function setEncodeMode(mode) {
+            encodeMode = mode;
+            if (mode === 'file') {
+                modeFileBtn.className = 'flex-1 py-1.5 text-sm font-medium rounded text-white bg-white/10 shadow shadow-black/20 transition-all';
+                modeTableBtn.className = 'flex-1 py-1.5 text-sm font-medium rounded text-gray-400 hover:text-white transition-all';
+                encFileArea.classList.remove('hidden');
+                encTableArea.classList.add('hidden');
+                encTableArea.classList.remove('flex');
+                outFilename.placeholder = "Output filename (optional)";
+                updateCardWidth(false);
+            } else {
+                modeTableBtn.className = 'flex-1 py-1.5 text-sm font-medium rounded text-white bg-white/10 shadow shadow-black/20 transition-all';
+                modeFileBtn.className = 'flex-1 py-1.5 text-sm font-medium rounded text-gray-400 hover:text-white transition-all';
+                encFileArea.classList.add('hidden');
+                encTableArea.classList.remove('hidden');
+                encTableArea.classList.add('flex');
+                outFilename.placeholder = "Enter table name...";
+                if(!outFilename.value) outFilename.value = "secret_table";
+                updateCardWidth(true);
+                renderTable(tableData, 'tableContainer', 'edit');
+            }
+        }
+
+        modeFileBtn.addEventListener('click', () => setEncodeMode('file'));
+        modeTableBtn.addEventListener('click', () => setEncodeMode('table'));
+
+        // --- Radio Output & Extension Preview ---
         const radios = document.querySelectorAll('input[name="outputMode"]');
         const carrierWrapper = document.getElementById('carrierImageWrapper');
+        const outExt = document.getElementById('outExt');
+        
         radios.forEach(r => {
             r.addEventListener('change', (e) => {
                 if (e.target.value === 'image') {
                     carrierWrapper.classList.remove('hidden');
+                    outExt.textContent = '.png';
                 } else {
                     carrierWrapper.classList.add('hidden');
+                    outExt.textContent = '.lsn';
                 }
             });
         });
 
+        // --- File Inputs Handling ---
         const filesData = { encSecret: null, encCarrier: null, decFile: null };
-
-        function bindFileInput(inputId, nameDisplayId, stateKey) {
+        function bindFileInput(inputId, nameDisplayId, stateKey, onChangeCallback) {
             const input = document.getElementById(inputId);
             const display = document.getElementById(nameDisplayId);
             const zone = display.parentElement;
@@ -300,6 +499,7 @@
                     filesData[stateKey] = e.target.files[0];
                     display.textContent = e.target.files[0].name;
                     display.classList.add('text-white');
+                    if(onChangeCallback) onChangeCallback(e.target.files[0]);
                 }
             });
 
@@ -315,10 +515,159 @@
             });
         }
 
-        bindFileInput('encSecretFile', 'encSecretName', 'encSecret');
+        bindFileInput('encSecretFile', 'encSecretName', 'encSecret', (file) => {
+            if(!outFilename.value && encodeMode === 'file') {
+                const parts = file.name.split('.');
+                parts.pop(); // remove original ext
+                outFilename.value = parts.join('.') || file.name;
+            }
+        });
         bindFileInput('encCarrierFile', 'encCarrierName', 'encCarrier');
         bindFileInput('decFile', 'decFileName', 'decFile');
 
+        // --- Table Editor Logic ---
+        let tableData = [["", ""]];
+        
+        function parseCSV(text) {
+            const rows = [];
+            let currRow = [], currCell = '', inQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                if (char === '"') inQuotes = !inQuotes;
+                else if (char === ',' && !inQuotes) { currRow.push(currCell.trim()); currCell = ''; }
+                else if ((char === '\n' || char === '\r') && !inQuotes) {
+                    if (char === '\r' && text[i+1] === '\n') i++; // skip \n
+                    currRow.push(currCell.trim());
+                    if (currRow.some(c => c !== '')) rows.push(currRow);
+                    currRow = []; currCell = '';
+                }
+                else currCell += char;
+            }
+            if (currCell || currRow.length) { currRow.push(currCell.trim()); rows.push(currRow); }
+            // Normalize columns
+            const maxCols = Math.max(...rows.map(r => r.length));
+            return rows.map(r => {
+                while(r.length < maxCols) r.push("");
+                return r;
+            });
+        }
+
+        document.getElementById('csvImport').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const parsed = parseCSV(event.target.result);
+                    if(parsed.length > 0) tableData = parsed;
+                    renderTable(tableData, 'tableContainer', 'edit');
+                    showToast("CSV Imported", "success");
+                } catch(err) { showToast("Error parsing CSV", "error"); }
+            };
+            reader.readAsText(file);
+            e.target.value = ''; // reset
+        });
+
+        // Search logic
+        let currentSearchTerm = '';
+        document.getElementById('tableSearch').addEventListener('input', (e) => {
+            currentSearchTerm = e.target.value.toLowerCase();
+            renderTable(tableData, 'tableContainer', 'edit');
+        });
+
+        function renderTable(data, containerId, mode = 'readonly') {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            if(!data || data.length === 0) return;
+
+            const table = document.createElement('table');
+            table.className = 'secret-table';
+
+            const numCols = data[0].length;
+            
+            // Render Headers (Controls)
+            if (mode === 'edit') {
+                const trHead = document.createElement('tr');
+                const thEmpty = document.createElement('th');
+                thEmpty.style.width = '50px';
+                trHead.appendChild(thEmpty); // for row controls
+
+                for (let j = 0; j < numCols; j++) {
+                    const th = document.createElement('th');
+                    th.innerHTML = `
+                        <div class="flex gap-1 justify-center">
+                            <button class="table-ctrl-btn" onclick="moveCol(${j}, -1)" ${j===0?'disabled':''}>&lt;</button>
+                            <button class="table-ctrl-btn danger" onclick="delCol(${j})">X</button>
+                            <button class="table-ctrl-btn" onclick="moveCol(${j}, 1)" ${j===numCols-1?'disabled':''}>&gt;</button>
+                        </div>
+                    `;
+                    trHead.appendChild(th);
+                }
+                table.appendChild(trHead);
+            }
+
+            // Render Rows
+            data.forEach((row, i) => {
+                // Search filter
+                if (currentSearchTerm && !row.some(cell => cell.toLowerCase().includes(currentSearchTerm))) {
+                    return; // skip rendering
+                }
+
+                const tr = document.createElement('tr');
+                
+                if (mode === 'edit') {
+                    const tdCtrl = document.createElement('td');
+                    tdCtrl.innerHTML = `
+                        <div class="flex gap-1 justify-center flex-col sm:flex-row">
+                            <button class="table-ctrl-btn" onclick="moveRow(${i}, -1)" ${i===0?'disabled':''}>&uarr;</button>
+                            <button class="table-ctrl-btn danger" onclick="delRow(${i})">X</button>
+                            <button class="table-ctrl-btn" onclick="moveRow(${i}, 1)" ${i===data.length-1?'disabled':''}>&darr;</button>
+                        </div>
+                    `;
+                    tr.appendChild(tdCtrl);
+                }
+
+                row.forEach((cell, j) => {
+                    const td = document.createElement('td');
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'cell-input';
+                    input.value = cell;
+                    if (mode === 'readonly') input.readOnly = true;
+                    else {
+                        input.addEventListener('input', (e) => { data[i][j] = e.target.value; });
+                    }
+                    td.appendChild(input);
+                    tr.appendChild(td);
+                });
+                table.appendChild(tr);
+            });
+
+            container.appendChild(table);
+        }
+
+        // Global functions for inline HTML event handlers
+        window.addCol = () => { tableData.forEach(r => r.push("")); renderTable(tableData, 'tableContainer', 'edit'); };
+        window.addRow = () => { tableData.push(new Array(tableData[0].length).fill("")); renderTable(tableData, 'tableContainer', 'edit'); };
+        window.delCol = (j) => { if(tableData[0].length > 1) { tableData.forEach(r => r.splice(j, 1)); renderTable(tableData, 'tableContainer', 'edit'); } };
+        window.delRow = (i) => { if(tableData.length > 1) { tableData.splice(i, 1); renderTable(tableData, 'tableContainer', 'edit'); } };
+        window.moveCol = (j, dir) => {
+            if(j + dir >= 0 && j + dir < tableData[0].length) {
+                tableData.forEach(r => { const temp = r[j]; r[j] = r[j+dir]; r[j+dir] = temp; });
+                renderTable(tableData, 'tableContainer', 'edit');
+            }
+        };
+        window.moveRow = (i, dir) => {
+            if(i + dir >= 0 && i + dir < tableData.length) {
+                const temp = tableData[i]; tableData[i] = tableData[i+dir]; tableData[i+dir] = temp;
+                renderTable(tableData, 'tableContainer', 'edit');
+            }
+        };
+
+        document.getElementById('addColBtn').addEventListener('click', window.addCol);
+        document.getElementById('addRowBtn').addEventListener('click', window.addRow);
+
+        // --- Core Cryptography Engine ---
         async function getBaseKey(password) {
             return window.crypto.subtle.importKey(
                 "raw", new TextEncoder().encode(password),
@@ -333,7 +682,9 @@
             );
         }
 
-        async function multiEncryptPayload(fileBuffer, fileName, password) {
+        // Payload Format: [Salt1 16] [Salt2 16] [IV1 12] [IV2 12] [Type 1] [NameLen 1] [Name N] [Cipher N]
+        // Type: 0 = File, 1 = Table JSON
+        async function multiEncryptPayload(fileBuffer, fileName, password, payloadType = 0) {
             const baseKey = await getBaseKey(password);
             
             const salt1 = crypto.getRandomValues(new Uint8Array(16));
@@ -347,11 +698,11 @@
             const cipher1 = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv1 }, key1, fileBuffer);
             const cipher2 = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv2 }, key2, cipher1);
 
-            const nameBytes = new TextEncoder().encode(fileName);
+            let safeName = fileName.slice(0, 250); // prevent overflow
+            const nameBytes = new TextEncoder().encode(safeName);
             const cipherArray = new Uint8Array(cipher2);
 
-            // Format: [Salt1 16] [Salt2 16] [IV1 12] [IV2 12] [NameLen 1] [Name N] [Cipher N]
-            const totalLen = 16 + 16 + 12 + 12 + 1 + nameBytes.length + cipherArray.length;
+            const totalLen = 16 + 16 + 12 + 12 + 1 + 1 + nameBytes.length + cipherArray.length;
             const payload = new Uint8Array(totalLen);
             
             let offset = 0;
@@ -359,6 +710,7 @@
             payload.set(salt2, offset); offset += 16;
             payload.set(iv1, offset); offset += 12;
             payload.set(iv2, offset); offset += 12;
+            payload.set([payloadType], offset); offset += 1;
             payload.set([nameBytes.length], offset); offset += 1;
             payload.set(nameBytes, offset); offset += nameBytes.length;
             payload.set(cipherArray, offset);
@@ -373,6 +725,7 @@
             const iv1 = payload.slice(offset, offset + 12); offset += 12;
             const iv2 = payload.slice(offset, offset + 12); offset += 12;
 
+            const payloadType = payload[offset]; offset += 1;
             const nameLen = payload[offset]; offset += 1;
             const nameBytes = payload.slice(offset, offset + nameLen); offset += nameLen;
             const fileName = new TextDecoder().decode(nameBytes);
@@ -385,26 +738,30 @@
 
             let cipher1;
             try { cipher1 = await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv2 }, key2, cipher2); } 
-            catch { throw new Error("Incorrect password or corrupted data."); }
+            catch { throw new Error("Incorrect password or corrupted data (L2)."); }
 
             let originalBuffer;
             try { originalBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv1 }, key1, cipher1); } 
             catch { throw new Error("Decryption failed at layer 1."); }
 
-            return { buffer: originalBuffer, fileName };
+            return { buffer: originalBuffer, fileName, type: payloadType };
         }
 
+        // --- Steganography Engine ---
         function getBit(byte, bitIndex) { return (byte >> (7 - bitIndex)) & 1; }
 
         async function embedDataInImage(imageFile, payloadBytes) {
             const imgUrl = URL.createObjectURL(imageFile);
             const img = new Image();
-            await new Promise(r => { img.onload = r; img.src = imgUrl; });
+            await new Promise((resolve, reject) => { 
+                img.onload = resolve; 
+                img.onerror = reject;
+                img.src = imgUrl; 
+            });
 
             const canvas = document.getElementById('processingCanvas');
             const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-            // Prepend 4-byte length to payload
             const lengthBuffer = new ArrayBuffer(4);
             new DataView(lengthBuffer).setUint32(0, payloadBytes.length, false);
             const stegoData = new Uint8Array(4 + payloadBytes.length);
@@ -436,7 +793,7 @@
                         bitIndex++;
                     }
                 }
-                pixels[i + 3] = 255; // Force Alpha to max to prevent premultiply rounding
+                pixels[i + 3] = 255; 
             }
 
             ctx.putImageData(imageData, 0, 0);
@@ -447,7 +804,11 @@
         async function extractDataFromImage(imageFile) {
             const imgUrl = URL.createObjectURL(imageFile);
             const img = new Image();
-            await new Promise(r => { img.onload = r; img.src = imgUrl; });
+            await new Promise((resolve, reject) => { 
+                img.onload = resolve; 
+                img.onerror = reject;
+                img.src = imgUrl; 
+            });
 
             const canvas = document.getElementById('processingCanvas');
             canvas.width = img.width; canvas.height = img.height;
@@ -473,8 +834,9 @@
 
                         if (readingLen && extracted.length === 4) {
                             payloadLen = new DataView(new Uint8Array(extracted).buffer).getUint32(0, false);
-                            // Sanity check for length
-                            if (payloadLen > (pixels.length / 4 * 3)) throw new Error("Invalid stego format or image.");
+                            if (payloadLen === 0 || payloadLen > (pixels.length / 4 * 3)) {
+                                throw new Error("Invalid stego format or image does not contain encoded data.");
+                            }
                             extracted = [];
                             readingLen = false;
                         } else if (!readingLen && extracted.length === payloadLen) {
@@ -496,33 +858,53 @@
             setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
         }
 
+        // --- Main Action Buttons ---
+
         document.getElementById('btnEncode').addEventListener('click', async () => {
-            const secret = filesData.encSecret;
             const pass = document.getElementById('encPassword').value;
             const mode = document.querySelector('input[name="outputMode"]:checked').value;
             const carrier = filesData.encCarrier;
+            
+            let buffer, fName, pType;
 
-            if (!secret || !pass) return showToast("File and password required.", "error");
-            if (mode === 'image' && !carrier) return showToast("Carrier image required.", "error");
+            if (encodeMode === 'file') {
+                const secret = filesData.encSecret;
+                if (!secret) return showToast("Please select a file to encrypt.", "error");
+                fName = outFilename.value.trim() || secret.name.split('.')[0] || "encrypted_file";
+                buffer = await secret.arrayBuffer();
+                pType = 0;
+            } else {
+                fName = outFilename.value.trim() || "secret_table";
+                const jsonStr = JSON.stringify(tableData);
+                buffer = new TextEncoder().encode(jsonStr).buffer;
+                pType = 1;
+            }
 
-            showToast("Processing...", "info");
+            if (!pass) return showToast("Password is required.", "error");
+            if (mode === 'image' && !carrier) return showToast("Carrier image required for Steganography.", "error");
+
+            showToast("Encrypting payload...", "info");
             try {
-                const buffer = await secret.arrayBuffer();
-                const payload = await multiEncryptPayload(buffer, secret.name, pass);
+                const payload = await multiEncryptPayload(buffer, fName, pass, pType);
 
                 if (mode === 'lsn') {
                     const blob = new Blob([payload], { type: 'application/octet-stream' });
-                    downloadFile(blob, `${secret.name}.lsn`);
+                    downloadFile(blob, `${fName}.lsn`);
                     showToast("Encoded .lsn downloaded.", "success");
                 } else {
                     const dataUrl = await embedDataInImage(carrier, payload);
                     const blob = await (await fetch(dataUrl)).blob();
-                    downloadFile(blob, `encoded_${secret.name}.png`);
+                    downloadFile(blob, `${fName}_stego.png`);
                     showToast("Steganography image downloaded.", "success");
                 }
                 document.getElementById('encPassword').value = '';
-            } catch (e) { showToast(`Error: ${e.message}`, "error"); }
+            } catch (e) { showToast(`Error: ${e.message}`, "error"); console.error(e); }
         });
+
+        // Decode State Variables
+        let decodedTableData = [];
+        let decodedFileName = "";
+        let isDecodedTableEditing = false;
 
         document.getElementById('btnDecode').addEventListener('click', async () => {
             const file = filesData.decFile;
@@ -530,7 +912,7 @@
 
             if (!file || !pass) return showToast("File and password required.", "error");
 
-            showToast("Decoding...", "info");
+            showToast("Decrypting...", "info");
             try {
                 let payload;
                 if (file.name.toLowerCase().endsWith('.png') || file.type.startsWith('image/')) {
@@ -539,14 +921,159 @@
                     payload = new Uint8Array(await file.arrayBuffer());
                 }
 
-                const { buffer, fileName } = await multiDecryptPayload(payload, pass);
-                const blob = new Blob([buffer], { type: 'application/octet-stream' });
-                downloadFile(blob, fileName);
+                const { buffer, fileName, type } = await multiDecryptPayload(payload, pass);
                 
-                showToast("File decoded successfully.", "success");
-                document.getElementById('decPassword').value = '';
-            } catch (e) { showToast(`Decode Failed: ${e.message}`, "error"); }
+                if (type === 0) {
+                    // Regular File
+                    const blob = new Blob([buffer], { type: 'application/octet-stream' });
+                    // Recover extension if it was stripped, or just use the extracted name.
+                    // For safety, we use what was embedded.
+                    downloadFile(blob, fileName);
+                    showToast("File decoded and downloaded.", "success");
+                    document.getElementById('decPassword').value = '';
+                } else if (type === 1) {
+                    // Table JSON
+                    const jsonStr = new TextDecoder().decode(buffer);
+                    decodedTableData = JSON.parse(jsonStr);
+                    decodedFileName = fileName;
+                    
+                    // Update UI for Table
+                    document.getElementById('decInputArea').classList.add('hidden');
+                    document.getElementById('decInputArea').classList.remove('flex');
+                    document.getElementById('decTableArea').classList.remove('hidden');
+                    document.getElementById('decTableArea').classList.add('flex');
+                    document.getElementById('decTableFilename').textContent = fileName;
+                    
+                    isDecodedTableEditing = false;
+                    document.getElementById('btnToggleEdit').textContent = "Enable Edit";
+                    document.getElementById('btnToggleEdit').classList.replace('bg-blue-500/20', 'bg-white/10');
+                    document.getElementById('decTableReEncodeArea').classList.add('hidden');
+                    document.getElementById('decTableReEncodeArea').classList.remove('flex');
+                    
+                    updateCardWidth(true);
+                    
+                    // We need a specific window scope wrapper for decode table rendering since it mutates a different state array
+                    window.renderDecTable = (data, mode) => {
+                        const containerId = 'decTableContainer';
+                        const container = document.getElementById(containerId);
+                        container.innerHTML = '';
+                        if(!data || data.length === 0) return;
+
+                        const table = document.createElement('table');
+                        table.className = 'secret-table';
+                        const numCols = data[0].length;
+                        
+                        if (mode === 'edit') {
+                            const trHead = document.createElement('tr');
+                            const thEmpty = document.createElement('th');
+                            thEmpty.style.width = '50px';
+                            trHead.appendChild(thEmpty);
+                            for (let j = 0; j < numCols; j++) {
+                                const th = document.createElement('th');
+                                th.innerHTML = `
+                                    <div class="flex gap-1 justify-center">
+                                        <button class="table-ctrl-btn" onclick="moveDecCol(${j}, -1)" ${j===0?'disabled':''}>&lt;</button>
+                                        <button class="table-ctrl-btn danger" onclick="delDecCol(${j})">X</button>
+                                        <button class="table-ctrl-btn" onclick="moveDecCol(${j}, 1)" ${j===numCols-1?'disabled':''}>&gt;</button>
+                                    </div>
+                                `;
+                                trHead.appendChild(th);
+                            }
+                            table.appendChild(trHead);
+                        }
+
+                        data.forEach((row, i) => {
+                            const tr = document.createElement('tr');
+                            if (mode === 'edit') {
+                                const tdCtrl = document.createElement('td');
+                                tdCtrl.innerHTML = `
+                                    <div class="flex gap-1 justify-center flex-col sm:flex-row">
+                                        <button class="table-ctrl-btn" onclick="moveDecRow(${i}, -1)" ${i===0?'disabled':''}>&uarr;</button>
+                                        <button class="table-ctrl-btn danger" onclick="delDecRow(${i})">X</button>
+                                        <button class="table-ctrl-btn" onclick="moveDecRow(${i}, 1)" ${i===data.length-1?'disabled':''}>&darr;</button>
+                                    </div>
+                                `;
+                                tr.appendChild(tdCtrl);
+                            }
+                            row.forEach((cell, j) => {
+                                const td = document.createElement('td');
+                                const input = document.createElement('input');
+                                input.type = 'text';
+                                input.className = 'cell-input';
+                                input.value = cell;
+                                if (mode === 'readonly') input.readOnly = true;
+                                else input.addEventListener('input', (e) => { data[i][j] = e.target.value; });
+                                td.appendChild(input);
+                                tr.appendChild(td);
+                            });
+                            table.appendChild(tr);
+                        });
+                        container.appendChild(table);
+                    };
+
+                    window.delDecCol = (j) => { if(decodedTableData[0].length > 1) { decodedTableData.forEach(r => r.splice(j, 1)); renderDecTable(decodedTableData, 'edit'); } };
+                    window.delDecRow = (i) => { if(decodedTableData.length > 1) { decodedTableData.splice(i, 1); renderDecTable(decodedTableData, 'edit'); } };
+                    window.moveDecCol = (j, dir) => {
+                        if(j + dir >= 0 && j + dir < decodedTableData[0].length) {
+                            decodedTableData.forEach(r => { const temp = r[j]; r[j] = r[j+dir]; r[j+dir] = temp; });
+                            renderDecTable(decodedTableData, 'edit');
+                        }
+                    };
+                    window.moveDecRow = (i, dir) => {
+                        if(i + dir >= 0 && i + dir < decodedTableData.length) {
+                            const temp = decodedTableData[i]; decodedTableData[i] = decodedTableData[i+dir]; decodedTableData[i+dir] = temp;
+                            renderDecTable(decodedTableData, 'edit');
+                        }
+                    };
+
+                    renderDecTable(decodedTableData, 'readonly');
+                    showToast("Table decrypted successfully.", "success");
+                }
+            } catch (e) { showToast(`Decode Failed: ${e.message}`, "error"); console.error(e); }
         });
+
+        // Decode Table Actions
+        document.getElementById('btnCloseDecTable').addEventListener('click', resetDecodeView);
+        
+        document.getElementById('btnToggleEdit').addEventListener('click', (e) => {
+            isDecodedTableEditing = !isDecodedTableEditing;
+            const btn = e.target;
+            const reEncArea = document.getElementById('decTableReEncodeArea');
+            
+            if (isDecodedTableEditing) {
+                btn.textContent = "Lock Editing";
+                btn.classList.replace('bg-white/10', 'bg-blue-500/30');
+                renderDecTable(decodedTableData, 'edit');
+                reEncArea.classList.remove('hidden');
+                reEncArea.classList.add('flex');
+            } else {
+                btn.textContent = "Enable Edit";
+                btn.classList.replace('bg-blue-500/30', 'bg-white/10');
+                renderDecTable(decodedTableData, 'readonly');
+                reEncArea.classList.add('hidden');
+                reEncArea.classList.remove('flex');
+            }
+        });
+
+        document.getElementById('btnReEncode').addEventListener('click', async () => {
+            const pass = document.getElementById('reEncPassword').value || document.getElementById('decPassword').value;
+            if(!pass) return showToast("Password required to re-encrypt", "error");
+
+            showToast("Re-encrypting table...", "info");
+            try {
+                const jsonStr = JSON.stringify(decodedTableData);
+                const buffer = new TextEncoder().encode(jsonStr).buffer;
+                const payload = await multiEncryptPayload(buffer, decodedFileName, pass, 1);
+                
+                const blob = new Blob([payload], { type: 'application/octet-stream' });
+                downloadFile(blob, `${decodedFileName}_updated.lsn`);
+                showToast("Table re-encrypted and downloaded.", "success");
+                document.getElementById('reEncPassword').value = '';
+            } catch (e) {
+                showToast(`Error saving: ${e.message}`, "error");
+            }
+        });
+
     </script>
 </body>
 </html>
